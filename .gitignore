@@ -1,0 +1,8 @@
+output_img/*
+output.mp4
+./mqtt_publisher/esp32mqtt.c
+./mqtt_publisher/mqtt_publisher
+./mqtt_publisher/build
+build/
+yolov8n_lite_arm_cpu
+val/*
