@@ -16,4 +16,6 @@ val/*
 !/val/people(7758).jpg
 !/val/people(7760).jpg
 image.jpg
+yolov8n_lite_arm_cpu
+!yolov8n_lite_arm_cpu.cc
 
