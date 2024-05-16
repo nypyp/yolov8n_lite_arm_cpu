@@ -1,6 +1,6 @@
 output_img/*
 output.mp4
-mqtt_publisher/
+mqtt_publisher
 build/
 val/*
 !/val/people(7742).jpg
