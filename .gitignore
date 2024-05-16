@@ -2,8 +2,6 @@ output_img/*
 output.mp4
 ./mqtt_publisher/*
 build/
-yolov8n_lite_arm_cpu
-!yolov8n_lite_arm_cpu.cc
 val/*
 !/val/people(7742).jpg
 !/val/people(7743).jpg
@@ -17,6 +15,5 @@ val/*
 !/val/people(7757).jpg
 !/val/people(7758).jpg
 !/val/people(7760).jpg
-demo.cc
 image.jpg
 
