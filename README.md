@@ -40,8 +40,8 @@ yolov8n_lite_arm_cpu
 ### 运行
 
 ```bash
-./yolov8_lite_arm_cpu.cc image_test # 从val读取10张图片进行检测
-./yolov8_lite_arm_cpu.cc #使用/dev/video10摄像头进行检测
+./yolov8_lite_arm_cpu image_test # 从val读取10张图片进行检测
+./yolov8_lite_arm_cpu #使用/dev/video10摄像头进行检测
 ```
 
 ### Q&A
