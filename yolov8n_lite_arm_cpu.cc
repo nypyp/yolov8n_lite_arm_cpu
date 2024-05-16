@@ -593,8 +593,8 @@ int main(int argc, char **argv) {
     } else {
         std::cout << "\nRun in Video mode..." << std::endl;
         int fall_detecte_count = 0;
-        // cv::VideoCapture cap("/dev/video10");
-        cv::VideoCapture cap("output.mp4"); //  测试视频
+        cv::VideoCapture cap("/dev/video10");
+        // cv::VideoCapture cap("output.mp4"); //  测试视频
         cap.set(cv::CAP_PROP_FRAME_HEIGHT, 640);
         if (!cap.isOpened()){
             std::cout << "\n[ERROR]Could not open camera\n" << std::endl;
