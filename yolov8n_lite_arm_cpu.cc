@@ -16,8 +16,9 @@
 
 using namespace paddle::lite_api;
 
-bool IMAGE = 0;
-bool VIDEO = 1;
+int IMAGE = 0;
+int VIDEO = 1;
+int CAM = 2;
 bool FALL_FLAGE = 0;
 bool LAST_FLAGE = 0;
 bool FALL_DETECTED = 0;
@@ -363,9 +364,6 @@ std::pair<std::vector<std::vector<float>>, std::vector<float>> postprocess(const
                                                                            int input_height) {
     int img_height = input_image.rows;
     int img_width = input_image.cols;
-    // std::cout << "img_height: " << img_height << ", "
-    //             << "img_width: " << img_width << std::endl;
-    //Get output
     auto outputTensor = predictor->GetOutput(0);
     auto outputData = outputTensor->data<float>();
     auto outputShape = outputTensor->shape();
@@ -426,16 +424,12 @@ void draw_resualt(cv::Mat& output_image, std::pair<std::vector<std::vector<float
  * @param input_image 输入图像
  * @param output_image 输出图像，绘制检测结果后的图像
  * @param predictor Paddle预测器
- * @param mode 模式标志，暂未使用
  */
 void process(const cv::Mat& input_image, 
              cv::Mat& output_image,
-             std::shared_ptr<PaddlePredictor> predictor,
-             bool mode){
+             std::shared_ptr<PaddlePredictor> predictor){
     int input_width = INPUT_SHAPE[3];
     int input_height = INPUT_SHAPE[2];
-    std::vector<float> inputMean = {0.485, 0.456, 0.406};
-    std::vector<float> inputStd = {0.229, 0.224, 0.225};
     
     //设置输入张量大小并设置值
     auto inputTensor = predictor->GetInput(0);
@@ -446,8 +440,9 @@ void process(const cv::Mat& input_image,
     cv::Mat preproc_image = preprocess(input_image,input_width,input_height);
 
     //对张量值inputData进行设置
+    cv::imwrite("./output_img/preproc_img.jpg",preproc_image);
     NHWC3ToNC3HW(reinterpret_cast<const float *>(preproc_image.data), inputData,
-               inputMean.data(), inputStd.data(), input_width, input_height);
+               NULL, NULL, input_width, input_height);
     
     //Run predictor
     auto start = GetCurrentUS();
@@ -461,10 +456,8 @@ void process(const cv::Mat& input_image,
         std::cout << "scores: " << scores[0] << std::endl;
         FALL_FLAGE = true;
     }
-    if (1) {
-        output_image = input_image.clone();
-        draw_resualt(output_image,results);
-    }
+    output_image = input_image.clone();
+    draw_resualt(output_image,results);
 }
 
 /**
@@ -478,7 +471,7 @@ void save_image(std::string input_image_path, const cv::Mat& output_image) {
     int end = input_image_path.find_last_of(".");
     std::string img_name = input_image_path.substr(start + 1, end - start - 1);
     std::string result_name =
-        "output_img/"+img_name + "_yolov8n_lite_falldetect.jpg";
+        "output/"+img_name + "_yolov8n_lite_falldetect.jpg";
     cv::imwrite(result_name, output_image);
 }
 
@@ -512,17 +505,32 @@ int mqtt_publisher(mqtt::async_client& client,mqtt::connect_options& conn_opts){
 }
 
 int main(int argc, char **argv) {
-    bool mode = VIDEO;  //定义检测模式
+    std::string srcPath;  //test file文件路径
+    std::string img_mode = "image_test";
+    std::string video_mode = "video_test";
+    int mode;
     //检测输入参数设置检测模式
-    if (argc >= 2) {
+    if (argc  == 2) {
+        mode = CAM;
+        srcPath = argv[1];
+    } else if (argc == 3) {
         std::string arg1 = argv[1];
-        std::string must = "image_test";
-        if (arg1.compare(must)){
+        srcPath = argv[2];
+        if (!arg1.compare(img_mode)) mode = IMAGE;
+        else if (!arg1.compare(video_mode)) mode = VIDEO;
+        else {
             printf("Usage: \n"
-                "./yolov8_lite_arm_cpu.cc image_test :if you want test the image process fps. \n"
-                "./yolov8_lite_arm_cpu.cc :if you want use the usb cam to detect.");
+                "./yolov8_lite_arm_cpu.cc image_test <imageDirectory/>  :if you want test the image fall detection. \n"
+                "./yolov8_lite_arm_cpu.cc video_test <videoFile>        :if you want test the video fall detection. \n"
+                "./yolov8_lite_arm_cpu.cc </dev/video*>                 :if you want use the usb cam to detect. \n");
             return -1;
-        } else mode = IMAGE;
+        }
+    } else {
+        printf("Usage: \n"
+                "./yolov8_lite_arm_cpu.cc image_test <imageDirectory/>  :if you want test the image fall detection. \n"
+                "./yolov8_lite_arm_cpu.cc video_test <videoFile>        :if you want test the video fall detection. \n"
+                "./yolov8_lite_arm_cpu.cc </dev/video*>                 :if you want use the usb cam to detect. \n");
+            return -1;
     }
     //配置mqtt服务
     mqtt::async_client client(SERVER_ADDRESS, CLIENT_ID);
@@ -548,63 +556,86 @@ int main(int argc, char **argv) {
     std::shared_ptr<PaddlePredictor> predictor =
         CreatePaddlePredictor<MobileConfig>(config);
 
-    // 3. Read input image or video
+    // 3. Read input source
     if (mode == IMAGE) {
-        std::cout << "\nRun in Image mode, Process 10 images..." << std::endl;
-        //读取10张图片
-        std::string directory = "./val";
-        std::vector<std::string> imagePaths;
+        std::cout << "\nRun in Image mode, Process images in test_img/..." << std::endl;
+        //读取文件夹中的图片
         std::cout << "\n======= benchmark summary =======\n" << std::endl;
-        DIR *dir;
-        struct dirent *ent;
-        if ((dir = opendir(directory.c_str())) != NULL)
-        {
-            int count = 0; // 计数器，用于限制图片数量
-            while ((ent = readdir(dir)) != NULL && count < 10)
-            {
-                std::string filename = ent->d_name;
-                std::string extension = filename.substr(filename.find_last_of(".") + 1);
-                if (extension == "jpg" || extension == "png" || extension == "jpeg"){
-                    std::string imagePath = directory + "/" + filename;
-                    imagePaths.push_back(imagePath);
-                    count++;
-                }                  
-            }
-            closedir(dir);
-        }
-        else
-        {
-            std::cerr << "Failed to open directory: " << directory << std::endl;
+        
+        DIR* dir;
+        struct dirent* entry;
+        
+        // 打开目录
+        dir = opendir(srcPath.c_str());
+        if (dir == nullptr) {
+            std::cout << "Cant open the directory..." << std::endl;
             return 1;
         }
-        for (const auto& imagePath : imagePaths)
-        {
-            cv::Mat input_image = cv::imread(imagePath, cv::IMREAD_COLOR);
-            cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
-            if(input_image.empty())
-            {
-                std::cerr << "Failed to read image: " << imagePath << std::endl;
-                continue;
+
+        // 遍历目录中的文件
+        while ((entry = readdir(dir)) != nullptr) {
+            std::string fileName = entry->d_name;
+            std::string filePath = filePath + "/" + fileName;
+
+            // 仅处理图像文件
+            if (fileName.find(".jpg") != std::string::npos) {
+                // 读取图像文件
+                cv::Mat input_image = cv::imread(filePath);
+                cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
+                // 检查图像是否成功读取
+                if (!input_image.empty()) {
+                    // 调用处理函数处理图像
+                    process(input_image, output_image, predictor);
+                    save_image(filePath, output_image);
+                }
             }
-            process(input_image, output_image, predictor,IMAGE);
-            save_image(imagePath, output_image);
         }
-        std::cout << "result has been saved to output_img/: " << std::endl; 
-    } else {
+        // 关闭目录
+        closedir(dir);
+        std::cout << "\nResult has been saved to output_img/: " << std::endl; 
+    } else if(mode == VIDEO) {
         std::cout << "\nRun in Video mode..." << std::endl;
+        cv::VideoCapture inputVideo(srcPath);
+        if (!inputVideo.isOpened()){
+            std::cout << "\n[ERROR]Could not open video\n" << std::endl;
+            return -1;
+        }
+
+        // 获取输入视频的参数
+        int frameWidth = inputVideo.get(cv::CAP_PROP_FRAME_WIDTH);
+        int frameHeight = inputVideo.get(cv::CAP_PROP_FRAME_HEIGHT);
+        double fps = inputVideo.get(cv::CAP_PROP_FPS);
+        cv::VideoWriter outputVideo("output/falldet_output.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, cv::Size(frameWidth, frameHeight));
+
+        // 逐帧检测
+        cv::Mat frame;
+        while(inputVideo.read(frame)){
+            
+            cv::Mat output_frame = cv::Mat::zeros(frame.size(), frame.type());
+            process(frame, output_frame, predictor);
+            outputVideo.write(output_frame);
+        }
+        std::cout << "Result has been saved to ./output/falldet_output.mp4 " << std::endl; 
+
+        //释放资源
+        inputVideo.release();
+        outputVideo.release();
+
+    } else if (mode == CAM){
+        std::cout << "\nRun in USB Cam mode..." << std::endl;
         int fall_detecte_count = 0;
-        // cv::VideoCapture cap("/dev/video10");
-        cv::VideoCapture cap("output.mp4"); //  测试视频
+        cv::VideoCapture cap(srcPath);
         cap.set(cv::CAP_PROP_FRAME_HEIGHT, 640);
         if (!cap.isOpened()){
             std::cout << "\n[ERROR]Could not open camera\n" << std::endl;
             return -1;
         }
+
         while(1) {
             cv::Mat input_image;
             cap >> input_image;
             cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
-            process(input_image, output_image, predictor, mode);
+            process(input_image, output_image, predictor);
             save_image("video", output_image);
             if (FALL_FLAGE && LAST_FLAGE) {
                 fall_detecte_count ++;

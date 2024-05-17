@@ -1,9 +1,11 @@
-output_img/*
+output/*
 output.mp4
 mqtt_publisher/
 build/
 val/*
 yolov8n_lite_arm_cpu
+test_img
+*.mp4
 
 !/val/people(7742).jpg
 !/val/people(7743).jpg
