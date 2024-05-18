@@ -636,7 +636,7 @@ int main(int argc, char **argv) {
             cap >> input_image;
             cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
             process(input_image, output_image, predictor);
-            save_image("video", output_image);
+            save_image("Camfram", output_image);
             if (FALL_FLAGE && LAST_FLAGE) {
                 fall_detecte_count ++;
                 std::cout << "Detect fall times: " << fall_detecte_count << std::endl;

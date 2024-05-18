@@ -5,7 +5,7 @@ build/
 val/*
 yolov8n_lite_arm_cpu
 test_img
-*.mp4
+*.mp4 
 
 !/val/people(7742).jpg
 !/val/people(7743).jpg

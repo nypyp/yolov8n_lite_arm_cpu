@@ -40,8 +40,9 @@ yolov8n_lite_arm_cpu
 ### 运行
 
 ```bash
-./yolov8_lite_arm_cpu image_test val/ # 从val读取10张图片进行检测
-./yolov8_lite_arm_cpu /dev/video* #使用/dev/video10摄像头进行检测
+./yolov8_lite_arm_cpu image_test val/ # 从val读取10张图片进行检测, 检测后的图片保存在output中
+./yolov8_lite_arm_cpu video_test test_video.mp4 # 读取test_video.mp4并将输出的视频保存在output中
+./yolov8_lite_arm_cpu /dev/video* #使用/dev/video10摄像头进行检测，在命令行中显示检测参数，并在ouput中将当前检测帧保存为Camfram_yolov8n_lite_falldetect.jpg
 ```
 
 ### Q&A
