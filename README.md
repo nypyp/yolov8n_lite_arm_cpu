@@ -19,7 +19,7 @@ cd paho.mqtt.cpp
 
 $ cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_BUILD_STATIC=ON \
 -DPAHO_BUILD_SAMPLES=ON
-$ sudo cmake --build build/ --target install
+$ sudo cmake --build build/ --target install  
 $ sudo ldconfig
 ```
 
@@ -28,7 +28,7 @@ $ sudo ldconfig
 ```bash
 yolov8n_lite_arm_cpu
 ├── build/
-├── output_img/
+├── output/
 ├── val/
 ├─ build.sh
 ├─ CMakeLists.txt
