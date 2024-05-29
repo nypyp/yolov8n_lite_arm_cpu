@@ -30,7 +30,7 @@ std::unordered_map<int, std::string> classes = {
 };
 
 // 定义置信度阈值和IoU阈值
-float confidence_thres = 0.50;
+float confidence_thres = 0.60;
 float iou_thres = 0.5;
 const std::vector<int64_t> INPUT_SHAPE = {1, 3, 640, 640};
 
@@ -207,7 +207,7 @@ std::vector<int> custom_NMSBoxes(std::vector<std::vector<float>> boxes,
  * @param box 边界框的坐标 [x1, y1, w, h]
  * @param score 检测结果的得分
  */
-void draw_detections(cv::Mat &output_image, std::vector<float> box, float score) {
+void draw_detections(cv::Mat &output_image,int class_id, std::vector<float> box, float score) {
     // 提取边界框的坐标
     float x1 = box[0];
     float y1 = box[1];
@@ -215,13 +215,13 @@ void draw_detections(cv::Mat &output_image, std::vector<float> box, float score)
     float h = box[3];
 
     // 根据类别ID检索颜色
-    cv::Scalar color = color_palette[0];
+    cv::Scalar color = color_palette[class_id];
 
     // 在图像上绘制边界框
     cv::rectangle(output_image, cv::Point(x1, y1), cv::Point(x1 + w, y1 + h), color, 2);
 
     // 创建标签文本，包括类名和得分
-    std::string label = classes[0] + ": " + std::to_string(score);
+    std::string label = classes[class_id] + ": " + std::to_string(score);
 
     // 计算标签文本的尺寸
     cv::Size label_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, nullptr);
@@ -356,9 +356,9 @@ cv::Mat preprocess(const cv::Mat img,
  * @param predictor Paddle预测器
  * @param input_width 输入图像的宽度
  * @param input_height 输入图像的高度
- * @return 包含检测边界框和得分的向量对
+ * @return 包含检测边界框和得分的tuple
  */
-std::pair<std::vector<std::vector<float>>, std::vector<float>> postprocess(const cv::Mat input_image, 
+std::tuple<std::vector<int>, std::vector<std::vector<float>>, std::vector<float>> postprocess(const cv::Mat input_image, 
                                                                            std::shared_ptr<paddle::lite_api::PaddlePredictor> predictor, 
                                                                            int input_width, 
                                                                            int input_height) {
@@ -368,19 +368,28 @@ std::pair<std::vector<std::vector<float>>, std::vector<float>> postprocess(const
     auto outputData = outputTensor->data<float>();
     auto outputShape = outputTensor->shape();
     auto outputRow = outputShape[2];
+    auto outputCol = outputShape[1];
     // 用于存储检测的边界框、得分和类别ID的向量
     std::vector<std::vector<float>> boxes;
     std::vector<float> scores;
+    std::vector<int> class_ids;
     // 计算边界框坐标的缩放因子
     float x_factor = static_cast<float>(img_width) / input_width;
     float y_factor = static_cast<float>(img_height) / input_height;
     // 遍历输出数组的每一行
     for (int i = 0; i < outputRow; i += 1) {
-            
-        // 提取当前行得分
-        auto score = outputData[i + outputRow*4];
-        if (score < confidence_thres)
+
+        std::vector<float> score_of_class;
+        // 提取当前行所有类得分，并得出最高分
+        for (int j = 0; j < outputCol; j += 1){
+            score_of_class.push_back(outputData[i + outputRow*(4+j)]);
+        }
+        auto max_score_itr = std::max_element(score_of_class.begin(),score_of_class.end());
+        float max_score = *max_score_itr;
+        if (max_score < confidence_thres)
             continue;
+        // 获取最高分索引
+        int max_score_index = std::distance(score_of_class.begin(), max_score_itr);
         // 从当前行提取边界框坐标
         float x = outputData[i];
         float y = outputData[i + outputRow];
@@ -391,10 +400,11 @@ std::pair<std::vector<std::vector<float>>, std::vector<float>> postprocess(const
         float top = static_cast<float>((y - h / 2) * y_factor);
         float width = static_cast<float>(w * x_factor);
         float height = static_cast<float>(h * y_factor);
-        scores.push_back(score);
+        class_ids.push_back(max_score_index);
+        scores.push_back(max_score);
         boxes.push_back({ left, top, width, height });
     }
-    return std::make_pair(boxes, scores);
+    return std::make_tuple(class_ids, boxes, scores);
 }
 
 /**
@@ -403,18 +413,17 @@ std::pair<std::vector<std::vector<float>>, std::vector<float>> postprocess(const
  * @param output_image 输出图像，绘制检测结果后的图像
  * @param results 包含检测边界框和得分的向量对
  */
-void draw_resualt(cv::Mat& output_image, std::pair<std::vector<std::vector<float>>, std::vector<float>> resualts){
-    std::vector<std::vector<float>> boxes = resualts.first;
-    std::vector<float> scores = resualts.second;
+void draw_resualt(cv::Mat& output_image, std::vector<int> class_ids, std::vector<std::vector<float>> boxes, std::vector<float> scores ){
     // 应用非最大抑制过滤重叠的边界框
     std::vector<int> indices = custom_NMSBoxes(boxes, scores, confidence_thres, iou_thres);
     // 遍历非最大抑制后的选定索引
     for (const auto& index : indices) {
         // 根据索引获取框、得分和类别ID
+        int class_id = class_ids[index];
         const std::vector<float>& box = boxes[index];
         float score = scores[index];
         // 在输入图像上绘制检测结果
-        draw_detections(output_image, box, score);
+        draw_detections(output_image, class_id, box, score);
     }
 }
 
@@ -450,14 +459,13 @@ void process(const cv::Mat& input_image,
     auto duration = (GetCurrentUS() - start) / 1000.0;
     std::cout << "process time duration:" << duration << std::endl;
 
-    auto results = postprocess(input_image, predictor,input_width,input_height);
-    std::vector<float> scores = results.second;
+    auto [class_ids, boxes, scores] = postprocess(input_image, predictor,input_width,input_height);
     if (!scores.empty()) {
         std::cout << "scores: " << scores[0] << std::endl;
         FALL_FLAGE = true;
     }
     output_image = input_image.clone();
-    draw_resualt(output_image,results);
+    draw_resualt(output_image, class_ids, boxes, scores);
 }
 
 /**
