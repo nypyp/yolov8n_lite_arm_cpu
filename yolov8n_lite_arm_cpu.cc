@@ -236,55 +236,6 @@ void draw_detections(cv::Mat &output_image,int class_id, std::vector<float> box,
     cv::putText(output_image, label, cv::Point(label_x, label_y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
 }
 
-// /**
-//  * 将 NHWC3 格式的浮点数图像数据转换为 NC3HW 格式，并进行均值归一化和标准化处理。
-//  * 
-//  * @param src 源图像数据指针，NHWC3 格式，按 [channel, height, width] 排列
-//  * @param dst 目标图像数据指针，NC3HW 格式，按 [channel, height, width] 排列
-//  * @param mean 均值数组指针，包含三个通道的均值值，默认为 nullptr
-//  * @param std 标准差数组指针，包含三个通道的标准差值，默认为 nullptr
-//  * @param width 图像宽度
-//  * @param height 图像高度
-//  */
-// void NHWC3ToNC3HW(const float *src, float *dst, const float *mean,
-//                   const float *std, int width, int height) {
-//   int size = height * width;
-//   float32x4_t vmean0 = vdupq_n_f32(mean ? mean[0] : 0.0f);
-//   float32x4_t vmean1 = vdupq_n_f32(mean ? mean[1] : 0.0f);
-//   float32x4_t vmean2 = vdupq_n_f32(mean ? mean[2] : 0.0f);
-//   float scale0 = std ? (1.0f / std[0]) : 1.0f;
-//   float scale1 = std ? (1.0f / std[1]) : 1.0f;
-//   float scale2 = std ? (1.0f / std[2]) : 1.0f;
-//   float32x4_t vscale0 = vdupq_n_f32(scale0);
-//   float32x4_t vscale1 = vdupq_n_f32(scale1);
-//   float32x4_t vscale2 = vdupq_n_f32(scale2);
-//   float *dst_c0 = dst;
-//   float *dst_c1 = dst + size;
-//   float *dst_c2 = dst + size * 2;
-//   int i = 0;
-//   for (; i < size - 3; i += 4) {
-//     float32x4x3_t vin3 = vld3q_f32(src);
-//     float32x4_t vsub0 = vsubq_f32(vin3.val[0], vmean0);
-//     float32x4_t vsub1 = vsubq_f32(vin3.val[1], vmean1);
-//     float32x4_t vsub2 = vsubq_f32(vin3.val[2], vmean2);
-//     float32x4_t vs0 = vmulq_f32(vsub0, vscale0);
-//     float32x4_t vs1 = vmulq_f32(vsub1, vscale1);
-//     float32x4_t vs2 = vmulq_f32(vsub2, vscale2);
-//     vst1q_f32(dst_c0, vs0);
-//     vst1q_f32(dst_c1, vs1);
-//     vst1q_f32(dst_c2, vs2);
-//     src += 12;
-//     dst_c0 += 4;
-//     dst_c1 += 4;
-//     dst_c2 += 4;
-//   }
-//   for (; i < size; i++) {
-//     *(dst_c0++) = (*(src++) - mean[0]) * scale0;
-//     *(dst_c1++) = (*(src++) - mean[1]) * scale1;
-//     *(dst_c2++) = (*(src++) - mean[2]) * scale2;
-//   }
-// }
-
 /**
  * @brief 将NHWC格式的3通道图像数据转换为NC3HW格式
  * 
@@ -573,7 +524,7 @@ int main(int argc, char **argv) {
     conn_opts.set_keep_alive_interval(20);
 
     //配置paddle 模型
-    std::string model_path = "yolov8_falldet_opt.nb";
+    std::string model_path = "yolov8_falldet_3cls_arm_opt.nb";
     create_color_palette();
 
     //1. set MobileConfig
