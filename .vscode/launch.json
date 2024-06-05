@@ -4,6 +4,7 @@
     "request": "launch",
     "program": "${command:cmake.launchTargetPath}",
     "args": [
+        
     ],
     "cwd": "${workspaceFolder}/build",
     "environment": [],
@@ -17,7 +18,8 @@
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
             "args": [
-
+                "image_test",
+                "val"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

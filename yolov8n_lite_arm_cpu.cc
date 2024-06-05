@@ -21,16 +21,15 @@ int VIDEO = 1;
 int CAM = 2;
 bool FALL_FLAGE = 0;
 bool LAST_FLAGE = 0;
-bool FALL_DETECTED = 0;
 
 
 // 定义类别到类名的映射
 std::unordered_map<int, std::string> classes = {
-    {0, "Fall"}
+    {0, "Fall"},{1, "Dog"},{2, "People"}
 };
 
 // 定义置信度阈值和IoU阈值
-float confidence_thres = 0.60;
+float confidence_thres = 0.70;
 float iou_thres = 0.5;
 const std::vector<int64_t> INPUT_SHAPE = {1, 3, 640, 640};
 
@@ -237,54 +236,76 @@ void draw_detections(cv::Mat &output_image,int class_id, std::vector<float> box,
     cv::putText(output_image, label, cv::Point(label_x, label_y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
 }
 
+// /**
+//  * 将 NHWC3 格式的浮点数图像数据转换为 NC3HW 格式，并进行均值归一化和标准化处理。
+//  * 
+//  * @param src 源图像数据指针，NHWC3 格式，按 [channel, height, width] 排列
+//  * @param dst 目标图像数据指针，NC3HW 格式，按 [channel, height, width] 排列
+//  * @param mean 均值数组指针，包含三个通道的均值值，默认为 nullptr
+//  * @param std 标准差数组指针，包含三个通道的标准差值，默认为 nullptr
+//  * @param width 图像宽度
+//  * @param height 图像高度
+//  */
+// void NHWC3ToNC3HW(const float *src, float *dst, const float *mean,
+//                   const float *std, int width, int height) {
+//   int size = height * width;
+//   float32x4_t vmean0 = vdupq_n_f32(mean ? mean[0] : 0.0f);
+//   float32x4_t vmean1 = vdupq_n_f32(mean ? mean[1] : 0.0f);
+//   float32x4_t vmean2 = vdupq_n_f32(mean ? mean[2] : 0.0f);
+//   float scale0 = std ? (1.0f / std[0]) : 1.0f;
+//   float scale1 = std ? (1.0f / std[1]) : 1.0f;
+//   float scale2 = std ? (1.0f / std[2]) : 1.0f;
+//   float32x4_t vscale0 = vdupq_n_f32(scale0);
+//   float32x4_t vscale1 = vdupq_n_f32(scale1);
+//   float32x4_t vscale2 = vdupq_n_f32(scale2);
+//   float *dst_c0 = dst;
+//   float *dst_c1 = dst + size;
+//   float *dst_c2 = dst + size * 2;
+//   int i = 0;
+//   for (; i < size - 3; i += 4) {
+//     float32x4x3_t vin3 = vld3q_f32(src);
+//     float32x4_t vsub0 = vsubq_f32(vin3.val[0], vmean0);
+//     float32x4_t vsub1 = vsubq_f32(vin3.val[1], vmean1);
+//     float32x4_t vsub2 = vsubq_f32(vin3.val[2], vmean2);
+//     float32x4_t vs0 = vmulq_f32(vsub0, vscale0);
+//     float32x4_t vs1 = vmulq_f32(vsub1, vscale1);
+//     float32x4_t vs2 = vmulq_f32(vsub2, vscale2);
+//     vst1q_f32(dst_c0, vs0);
+//     vst1q_f32(dst_c1, vs1);
+//     vst1q_f32(dst_c2, vs2);
+//     src += 12;
+//     dst_c0 += 4;
+//     dst_c1 += 4;
+//     dst_c2 += 4;
+//   }
+//   for (; i < size; i++) {
+//     *(dst_c0++) = (*(src++) - mean[0]) * scale0;
+//     *(dst_c1++) = (*(src++) - mean[1]) * scale1;
+//     *(dst_c2++) = (*(src++) - mean[2]) * scale2;
+//   }
+// }
+
 /**
- * 将 NHWC3 格式的浮点数图像数据转换为 NC3HW 格式，并进行均值归一化和标准化处理。
+ * @brief 将NHWC格式的3通道图像数据转换为NC3HW格式
  * 
- * @param src 源图像数据指针，NHWC3 格式，按 [channel, height, width] 排列
- * @param dst 目标图像数据指针，NC3HW 格式，按 [channel, height, width] 排列
- * @param mean 均值数组指针，包含三个通道的均值值，默认为 nullptr
- * @param std 标准差数组指针，包含三个通道的标准差值，默认为 nullptr
- * @param width 图像宽度
- * @param height 图像高度
+ * @param src 指向输入图像数据的指针，格式为NHWC
+ * @param dst 指向输出图像数据的指针，格式为NC3HW
+ * @param width 图像的宽度
+ * @param height 图像的高度
  */
-void NHWC3ToNC3HW(const float *src, float *dst, const float *mean,
-                  const float *std, int width, int height) {
+void NHWC3ToNC3HW(const float *src, float *dst, int width, int height) {
   int size = height * width;
-  float32x4_t vmean0 = vdupq_n_f32(mean ? mean[0] : 0.0f);
-  float32x4_t vmean1 = vdupq_n_f32(mean ? mean[1] : 0.0f);
-  float32x4_t vmean2 = vdupq_n_f32(mean ? mean[2] : 0.0f);
-  float scale0 = std ? (1.0f / std[0]) : 1.0f;
-  float scale1 = std ? (1.0f / std[1]) : 1.0f;
-  float scale2 = std ? (1.0f / std[2]) : 1.0f;
-  float32x4_t vscale0 = vdupq_n_f32(scale0);
-  float32x4_t vscale1 = vdupq_n_f32(scale1);
-  float32x4_t vscale2 = vdupq_n_f32(scale2);
   float *dst_c0 = dst;
   float *dst_c1 = dst + size;
   float *dst_c2 = dst + size * 2;
   int i = 0;
-  for (; i < size - 3; i += 4) {
-    float32x4x3_t vin3 = vld3q_f32(src);
-    float32x4_t vsub0 = vsubq_f32(vin3.val[0], vmean0);
-    float32x4_t vsub1 = vsubq_f32(vin3.val[1], vmean1);
-    float32x4_t vsub2 = vsubq_f32(vin3.val[2], vmean2);
-    float32x4_t vs0 = vmulq_f32(vsub0, vscale0);
-    float32x4_t vs1 = vmulq_f32(vsub1, vscale1);
-    float32x4_t vs2 = vmulq_f32(vsub2, vscale2);
-    vst1q_f32(dst_c0, vs0);
-    vst1q_f32(dst_c1, vs1);
-    vst1q_f32(dst_c2, vs2);
-    src += 12;
-    dst_c0 += 4;
-    dst_c1 += 4;
-    dst_c2 += 4;
-  }
   for (; i < size; i++) {
-    *(dst_c0++) = (*(src++) - mean[0]) * scale0;
-    *(dst_c1++) = (*(src++) - mean[1]) * scale1;
-    *(dst_c2++) = (*(src++) - mean[2]) * scale2;
+    *(dst_c0++) = *(src++);
+    *(dst_c1++) = *(src++);
+    *(dst_c2++) = *(src++);
   }
 }
+
 
 /**
  * 调整图像大小并进行缩放操作。
@@ -333,13 +354,14 @@ cv::Mat preprocess(const cv::Mat img,
                    int input_width, 
                    int input_height) {
 
-    // 将图像颜色空间从BGR转换为RGB
+    //将图像颜色空间从BGR转换为RGB
     cv::Mat rgb_img;
     cv::cvtColor(img, rgb_img, cv::COLOR_BGR2RGB);
 
     // 使用letterbox将图像大小调整为匹配输入形状
     cv::Mat resized_img;
     resized_img = resizeImage(rgb_img,cv::Size(input_width,input_height),true);
+    cv::imwrite("./output_img/preproc_img.jpg",resized_img);
 
     // 通过除以255.0来归一化图像数据
     cv::Mat normalized_img;
@@ -352,10 +374,10 @@ cv::Mat preprocess(const cv::Mat img,
 /**
  * 后处理函数，用于解析模型输出并生成检测结果。
  * 
- * @param input_image 输入图像
+ * @param input_image 原始图像
  * @param predictor Paddle预测器
- * @param input_width 输入图像的宽度
- * @param input_height 输入图像的高度
+ * @param input_width 预处理后图像的宽度
+ * @param input_height 预处理后图像的高度
  * @return 包含检测边界框和得分的tuple
  */
 std::tuple<std::vector<int>, std::vector<std::vector<float>>, std::vector<float>> postprocess(const cv::Mat input_image, 
@@ -376,12 +398,13 @@ std::tuple<std::vector<int>, std::vector<std::vector<float>>, std::vector<float>
     // 计算边界框坐标的缩放因子
     float x_factor = static_cast<float>(img_width) / input_width;
     float y_factor = static_cast<float>(img_height) / input_height;
+    int class_num = outputCol - 4;
     // 遍历输出数组的每一行
     for (int i = 0; i < outputRow; i += 1) {
 
         std::vector<float> score_of_class;
         // 提取当前行所有类得分，并得出最高分
-        for (int j = 0; j < outputCol; j += 1){
+        for (int j = 0; j < class_num; j += 1){
             score_of_class.push_back(outputData[i + outputRow*(4+j)]);
         }
         auto max_score_itr = std::max_element(score_of_class.begin(),score_of_class.end());
@@ -449,9 +472,7 @@ void process(const cv::Mat& input_image,
     cv::Mat preproc_image = preprocess(input_image,input_width,input_height);
 
     //对张量值inputData进行设置
-    cv::imwrite("./output_img/preproc_img.jpg",preproc_image);
-    NHWC3ToNC3HW(reinterpret_cast<const float *>(preproc_image.data), inputData,
-               NULL, NULL, input_width, input_height);
+    NHWC3ToNC3HW(reinterpret_cast<const float *>(preproc_image.data), inputData, input_width, input_height);
     
     //Run predictor
     auto start = GetCurrentUS();
@@ -459,9 +480,11 @@ void process(const cv::Mat& input_image,
     auto duration = (GetCurrentUS() - start) / 1000.0;
     std::cout << "process time duration:" << duration << std::endl;
 
-    auto [class_ids, boxes, scores] = postprocess(input_image, predictor,input_width,input_height);
-    if (!scores.empty()) {
-        std::cout << "scores: " << scores[0] << std::endl;
+    auto [class_ids, boxes, scores] = postprocess(input_image, predictor,input_width, input_height);
+    auto it = std::find(class_ids.begin(),class_ids.end(), 0);
+    if ( it != class_ids.end()) {
+        int index = std::distance(class_ids.begin(),it);
+        std::cout << "scores: " << scores[index] << std::endl;
         FALL_FLAGE = true;
     }
     output_image = input_image.clone();
@@ -550,7 +573,7 @@ int main(int argc, char **argv) {
     conn_opts.set_keep_alive_interval(20);
 
     //配置paddle 模型
-    std::string model_path = "v8deploy_armopt.nb";
+    std::string model_path = "yolov8_falldet_opt.nb";
     create_color_palette();
 
     //1. set MobileConfig
@@ -583,7 +606,7 @@ int main(int argc, char **argv) {
         // 遍历目录中的文件
         while ((entry = readdir(dir)) != nullptr) {
             std::string fileName = entry->d_name;
-            std::string filePath = filePath + "/" + fileName;
+            std::string filePath = srcPath + "/" + fileName;
 
             // 仅处理图像文件
             if (fileName.find(".jpg") != std::string::npos) {
@@ -653,10 +676,8 @@ int main(int argc, char **argv) {
             LAST_FLAGE = FALL_FLAGE;
             FALL_FLAGE = 0;
             if (fall_detecte_count>=8) {
-                FALL_DETECTED = true;
                 std::cout << "\n======= !!!Fall Detected!!! =======\n" << std::endl;
                 mqtt_publisher(client,conn_opts);
-                FALL_DETECTED = false;
                 fall_detecte_count = 0;
             }
             if (cv::waitKey(1) == char('q')) {
