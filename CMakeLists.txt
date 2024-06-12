@@ -12,22 +12,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 message("OPTIMIZE LEVEL: ${CMAKE_CXX_FLAGS}")
 # Set 3rd module path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
+
 #set opencv lib
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-# Add subdirectories for the external modules
-# add_subdirectory(external/paho-mqtt-cpp)
-# add_subdirectory(external/jsoncpp)
 
 
+#find mqtt lib
+find_library(PAHO_CPP_LIB paho-mqttpp3)
 
-# #find mqtt lib
-# find_library(PAHO_CPP_LIB paho-mqttpp3)
-
-# #find json lib
-# find_package(JsonCpp REQUIRED)
-# include_directories(${JSONCPP_INCLUDE_DIRS})
+#find json lib
+find_package(JsonCpp REQUIRED)
+include_directories(${JSONCPP_INCLUDE_DIRS})
 
 # 1. path to Paddle-Lite lib
 set(LITE_DIR "${PROJECT_SOURCE_DIR}/../../../cxx")
