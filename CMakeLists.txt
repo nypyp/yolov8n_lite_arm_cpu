@@ -8,21 +8,29 @@ set(TARGET yolov8n_lite_arm_cpu)
 set(ARMLINUX_ARCH_ABI armv8)
 
 # Set optimize level
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 message("OPTIMIZE LEVEL: ${CMAKE_CXX_FLAGS}")
 # Set 3rd module path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
-
+set(PAHO_WITH_MQTT_C ON)
+set(PAHO_BUILD_STATICb ON)
+set(PAHO_BUILD_SAMPLES ON)
 #set opencv lib
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-#find mqtt lib
-find_library(PAHO_CPP_LIB paho-mqttpp3)
+# Add subdirectories for the external modules
+add_subdirectory(external/paho-mqttpp)
+add_subdirectory(external/jsoncpp)
 
-#find json lib
-find_package(JsonCpp REQUIRED)
-include_directories(${JSONCPP_INCLUDE_DIRS})
+
+
+# #find mqtt lib
+# find_library(PAHO_CPP_LIB paho-mqttpp3)
+
+# #find json lib
+# find_package(JsonCpp REQUIRED)
+# include_directories(${JSONCPP_INCLUDE_DIRS})
 
 # 1. path to Paddle-Lite lib
 set(LITE_DIR "${PROJECT_SOURCE_DIR}/../../../cxx")
@@ -57,8 +65,8 @@ add_executable(${TARGET} ${TARGET}.cc)
 target_link_libraries(${TARGET} -lpaddle_light_api_shared)
 target_link_libraries(${TARGET} -ldl)
 target_link_libraries(${TARGET} ${OpenCV_LIBRARIES})
-target_link_libraries(${TARGET} ${PAHO_CPP_LIB} paho-mqtt3as)
-target_link_libraries(${TARGET} ${JSONCPP_LIBRARIES})
+target_link_libraries(${TARGET} paho-mqttpp3 paho-mqtt3as)
+target_link_libraries(${TARGET} jsoncpp_lib)
 
 ###############################################################
 # How to use one of static libaray:                           #
