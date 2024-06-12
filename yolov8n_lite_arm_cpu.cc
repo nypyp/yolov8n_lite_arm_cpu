@@ -101,15 +101,14 @@ void readJSON(const std::string& filename) {
     location = root["location"].asString();
 
     // 打印读取的字段
-    std::cout << "Configuration Parameters:" << std::endl;
-    std::cout << "------------------------" << std::endl;
-    std::cout << "confidence_thres: " << confidence_thres << std::endl;
-    std::cout << "model_path: " << model_path << std::endl;
-    std::cout << "SERVER_ADDRESS: " << server_address << std::endl;
-    std::cout << "mqtt_topic: " << mqtt_topic << std::endl;
-    std::cout << "location: " << location << std::endl;
-    std::cout << "------------------------" << std::endl; 
-
+    std::cout << "::::==========配置参数============::::" << std::endl;
+    std::cout << "::::=============================::::" << std::endl;
+    std::cout << "| confidence_thres:   " << confidence_thres << std::endl;
+    std::cout << "| model_path:         " << model_path << std::endl;
+    std::cout << "| SERVER_ADDRESS:     " << server_address << std::endl;
+    std::cout << "| mqtt_topic:         " << mqtt_topic << std::endl;
+    std::cout << "| location:           " << location << std::endl;
+    std::cout << "::::=============================::::" << std::endl;
 }
 
 std::string getMacAddress() {
@@ -697,17 +696,25 @@ int main(int argc, char **argv) {
             std::cout << "\n[ERROR]Could not open camera\n" << std::endl;
             return -1;
         }
-	cv::namedWindow("output", cv::WINDOW_AUTOSIZE);
-
+        cv::namedWindow("Output", cv::WINDOW_AUTOSIZE);
         while(1) {
             cv::Mat input_image;
             cap >> input_image;
             cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
             process(input_image, output_image, predictor);
             //save_image("Camfram", output_image);
-	    cv::imshow("output", output_image);
+            try
+            {
+                /* code */
+                cv::imshow("Output", output_image); // 显示处理后的图像
 
-	    if (FALL_FLAGE && LAST_FLAGE) {
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            
+            if (FALL_FLAGE && LAST_FLAGE) {
                 fall_detecte_count ++;
                 std::cout << "Detect fall times: " << fall_detecte_count << std::endl;
             }
@@ -723,7 +730,7 @@ int main(int argc, char **argv) {
                 break;
             }
         }
-	cv::destroyAllWindows();
+        cv::destroyAllWindows();
     }
 
     return 0;
