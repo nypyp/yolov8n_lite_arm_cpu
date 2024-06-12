@@ -101,12 +101,15 @@ void readJSON(const std::string& filename) {
     location = root["location"].asString();
 
     // 打印读取的字段
-    std::cout << "配置参数：" << std::endl;
+    std::cout << "Configuration Parameters:" << std::endl;
+    std::cout << "------------------------" << std::endl;
     std::cout << "confidence_thres: " << confidence_thres << std::endl;
     std::cout << "model_path: " << model_path << std::endl;
     std::cout << "SERVER_ADDRESS: " << server_address << std::endl;
     std::cout << "mqtt_topic: " << mqtt_topic << std::endl;
     std::cout << "location: " << location << std::endl;
+    std::cout << "------------------------" << std::endl; 
+
 }
 
 std::string getMacAddress() {
