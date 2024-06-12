@@ -17,7 +17,9 @@
 $ git clone --recursive https://github.com/eclipse/paho.mqtt.cpp 
 cd paho.mqtt.cpp
 
-$ cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_BUILD_STATIC=ON \
+$ cmake -Bbuild -H. \
+-DPAHO_WITH_MQTT_C=ON \
+-DPAHO_BUILD_STATIC=ON \
 -DPAHO_BUILD_SAMPLES=ON
 $ sudo cmake --build build/ --target install  
 $ sudo ldconfig

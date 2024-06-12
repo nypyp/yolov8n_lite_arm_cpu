@@ -697,14 +697,17 @@ int main(int argc, char **argv) {
             std::cout << "\n[ERROR]Could not open camera\n" << std::endl;
             return -1;
         }
+	cv::namedWindow("output", cv::WINDOW_AUTOSIZE);
 
         while(1) {
             cv::Mat input_image;
             cap >> input_image;
             cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
             process(input_image, output_image, predictor);
-            save_image("Camfram", output_image);
-            if (FALL_FLAGE && LAST_FLAGE) {
+            //save_image("Camfram", output_image);
+	    cv::imshow("output", output_image);
+
+	    if (FALL_FLAGE && LAST_FLAGE) {
                 fall_detecte_count ++;
                 std::cout << "Detect fall times: " << fall_detecte_count << std::endl;
             }
@@ -720,6 +723,7 @@ int main(int argc, char **argv) {
                 break;
             }
         }
+	cv::destroyAllWindows();
     }
 
     return 0;
