@@ -14,7 +14,7 @@ message("OPTIMIZE LEVEL: ${CMAKE_CXX_FLAGS}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 set(PAHO_WITH_MQTT_C ON)
 set(PAHO_BUILD_STATICb ON)
-set(PAHO_BUILD_SAMPLES ON)
+set(PAHO_BUILD_SAMPLES OFF)
 #set opencv lib
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
