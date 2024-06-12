@@ -20,7 +20,7 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Add subdirectories for the external modules
-add_subdirectory(external/paho-mqttpp)
+add_subdirectory(external/paho-mqtt-cpp)
 add_subdirectory(external/jsoncpp)
 
 
