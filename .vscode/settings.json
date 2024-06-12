@@ -57,7 +57,8 @@
         "ratio": "cpp",
         "mutex": "cpp",
         "thread": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "future": "cpp"
     },
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "cmake.configureSettings": {
