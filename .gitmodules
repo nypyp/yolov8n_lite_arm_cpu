@@ -1,3 +1,6 @@
 [submodule "external/jsoncpp"]
 	path = external/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
+[submodule "external/paho-mqtt-cpp"]
+	path = external/paho-mqtt-cpp
+	url = git@github.com:eclipse/paho.mqtt.cpp.git
