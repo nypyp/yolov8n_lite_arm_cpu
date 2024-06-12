@@ -23,6 +23,16 @@ $ sudo cmake --build build/ --target install
 $ sudo ldconfig
 ```
 
+### 安装Jsoncpp库
+```bash
+$ git clone https://github.com/open-source-parsers/jsoncpp.git
+$ cd jsoncpp
+$ mkdir build && cd build
+$ cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DARCHIVE_INSTALL_DIR=. -G "Unix Makefiles" ..
+$ make
+$ make install
+```
+
 ### 编译程序
 执行`$ bash build.sh`编译程序，在./val中放置图片用于图片检测，创建文件夹./output_img用于存放输出图片, 项目的结构如下：
 ```bash
