@@ -12,16 +12,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 message("OPTIMIZE LEVEL: ${CMAKE_CXX_FLAGS}")
 # Set 3rd module path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
-set(PAHO_WITH_MQTT_C ON)
-set(PAHO_BUILD_STATICb ON)
-set(PAHO_BUILD_SAMPLES OFF)
 #set opencv lib
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Add subdirectories for the external modules
-add_subdirectory(external/paho-mqtt-cpp)
-add_subdirectory(external/jsoncpp)
+# add_subdirectory(external/paho-mqtt-cpp)
+# add_subdirectory(external/jsoncpp)
 
 
 
