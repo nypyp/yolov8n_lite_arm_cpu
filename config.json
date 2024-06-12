@@ -1,0 +1,7 @@
+{
+    "confidence_thres": "0.70",
+    "model_path": "yolov8_falldet_3cls_arm_opt.nb",
+    "SERVER_ADDRESS": "tcp://8.134.150.174:1883",
+    "mqtt_topic": "820_cmd",
+    "location": "apartment:1 floor:2 room:3"
+}

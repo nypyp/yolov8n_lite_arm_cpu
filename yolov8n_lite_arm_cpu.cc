@@ -13,6 +13,12 @@
 #include <mqtt/async_client.h>
 #include <chrono>
 #include <ctime>
+#include <json/json.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+
 
 using namespace paddle::lite_api;
 
@@ -31,6 +37,15 @@ std::unordered_map<int, std::string> classes = {
 // 定义置信度阈值和IoU阈值
 float confidence_thres = 0.70;
 float iou_thres = 0.5;
+//配置paddle 模型
+std::string model_path = "yolov8_falldet_3cls_arm_opt.nb";
+//配置mqtt服务器地址及话题
+std::string server_address = "tcp://8.134.150.174:1883";
+std::string mqtt_topic = "820_cmd";
+//配置房间号
+std::string location = "apartment:1 floor:2 room:3";
+//mac 用于mqtt clint唯一标识，防冲突
+std::string mac = "xxxx-xxxx-xxxx";
 const std::vector<int64_t> INPUT_SHAPE = {1, 3, 640, 640};
 
 // 生成随机颜色
@@ -49,15 +64,13 @@ void create_color_palette() {
     }
 }
 
+
+
 inline double GetCurrentUS() {
   struct timeval time;
   gettimeofday(&time, NULL);
   return 1e+6 * time.tv_sec + time.tv_usec;
 }
-
-//mqtt服务配置
-const std::string SERVER_ADDRESS("tcp://8.134.150.174:1883");
-const std::string CLIENT_ID("falldetect_publisher");
 
 class callback : public mqtt::callback {
   void connection_lost(const std::string& cause) override {
@@ -68,6 +81,46 @@ class callback : public mqtt::callback {
     std::cout << "Message delivery complete" << std::endl;
   }
 };
+
+void readJSON(const std::string& filename) {
+    // 从文件中读取 JSON 数据
+    std::ifstream ifs(filename);
+    Json::Reader reader;
+    Json::Value root;
+
+    if (!reader.parse(ifs, root, false)) {
+        std::cerr << "Failed to parse JSON" << std::endl;
+        return;
+    }
+
+    // 读取字段
+    confidence_thres = root["confidence_thres"].asFloat();
+    model_path = root["model_path"].asString();
+    server_address = root["SERVER_ADDRESS"].asString();
+    mqtt_topic = root["mqtt_topic"].asString();
+    location = root["location"].asString();
+
+    // 打印读取的字段
+    std::cout << "配置参数：" << std::endl;
+    std::cout << "confidence_thres: " << confidence_thres << std::endl;
+    std::cout << "model_path: " << model_path << std::endl;
+    std::cout << "SERVER_ADDRESS: " << server_address << std::endl;
+    std::cout << "mqtt_topic: " << mqtt_topic << std::endl;
+    std::cout << "location: " << location << std::endl;
+}
+
+std::string getMacAddress() {
+    std::ifstream file("/sys/class/net/eth0/address");
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file");
+    }
+
+    std::string macAddress;
+    std::getline(file, macAddress);
+    file.close();
+
+    return macAddress;
+}
 
 /**
  * 计算给定边界框与一组其他边界框之间的交并比（IoU）。
@@ -462,19 +515,39 @@ int mqtt_publisher(mqtt::async_client& client,mqtt::connect_options& conn_opts){
     try {
         client.connect(conn_opts)->wait();
 
-        std::string message = "Fall detected";
+        //json OBJ
+        Json::Value json_msg;
+        json_msg["type"] = "Fall";
 
         // 获取当前时间
         auto now = std::chrono::system_clock::now();
         std::time_t timestamp = std::chrono::system_clock::to_time_t(now);
+        char time_str[100];
+        std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", std::localtime(&timestamp));
+        json_msg["time"] = time_str;
 
-        // 将时间戳附加到消息文本中
-        message += " : ";
-        message += std::ctime(&timestamp);
-        message.pop_back(); // 移除末尾的换行符
+        // 当前房间
+        json_msg["location"] = location;
+        //imei
+        json_msg["imei"] = "";
+        //cmd
+        json_msg["cmd"] = "help";
+        /*完整mqtt接口
+        {
+            "time": "2024-06-11 15:18:41",
+            "cmd": "help",
+            "imei": "",
+            "location": "apartment:1 floor:2 room:3",
+            "type": "Fall"
+        }*/
+
+        //json to string
+        Json::StreamWriterBuilder wbuilder;
+        std::string message = Json::writeString(wbuilder, json_msg);
+
         std::cout << "发送mqtt消息：" << message << std::endl;
 
-        mqtt::message_ptr pubmsg = mqtt::make_message("topic_fall", message);
+        mqtt::message_ptr pubmsg = mqtt::make_message("820_cmd", message);
         pubmsg->set_qos(1);
         client.publish(pubmsg)->wait();
 
@@ -514,7 +587,18 @@ int main(int argc, char **argv) {
                 "./yolov8_lite_arm_cpu.cc </dev/video*>                 :if you want use the usb cam to detect. \n");
             return -1;
     }
+    readJSON("config.json");
+    try {
+        mac = getMacAddress();
+        std::cout << "MAC address: " << mac << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
     //配置mqtt服务
+    //mqtt服务配置
+    const std::string SERVER_ADDRESS(server_address);
+    const std::string CLIENT_ID(mac);
     mqtt::async_client client(SERVER_ADDRESS, CLIENT_ID);
 
     callback cb;
@@ -523,8 +607,6 @@ int main(int argc, char **argv) {
     mqtt::connect_options conn_opts;
     conn_opts.set_keep_alive_interval(20);
 
-    //配置paddle 模型
-    std::string model_path = "yolov8_falldet_3cls_arm_opt.nb";
     create_color_palette();
 
     //1. set MobileConfig

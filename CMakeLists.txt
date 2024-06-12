@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
+project(yolov8n_lite_arm_cpu)
+
 set(TARGET yolov8n_lite_arm_cpu)
 
 # Set ARMLINUX_ARCH_ABI to armv8 or armv7 or armv7hf
@@ -8,6 +10,8 @@ set(ARMLINUX_ARCH_ABI armv8)
 # Set optimize level
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 message("OPTIMIZE LEVEL: ${CMAKE_CXX_FLAGS}")
+# Set 3rd module path
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 #set opencv lib
 find_package(OpenCV REQUIRED)
@@ -15,6 +19,10 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 #find mqtt lib
 find_library(PAHO_CPP_LIB paho-mqttpp3)
+
+#find json lib
+find_package(JsonCpp REQUIRED)
+include_directories(${JSONCPP_INCLUDE_DIRS})
 
 # 1. path to Paddle-Lite lib
 set(LITE_DIR "${PROJECT_SOURCE_DIR}/../../../cxx")
@@ -50,6 +58,7 @@ target_link_libraries(${TARGET} -lpaddle_light_api_shared)
 target_link_libraries(${TARGET} -ldl)
 target_link_libraries(${TARGET} ${OpenCV_LIBRARIES})
 target_link_libraries(${TARGET} ${PAHO_CPP_LIB} paho-mqtt3as)
+target_link_libraries(${TARGET} ${JSONCPP_LIBRARIES})
 
 ###############################################################
 # How to use one of static libaray:                           #
