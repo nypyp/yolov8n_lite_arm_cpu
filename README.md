@@ -40,8 +40,9 @@ sudo apt-get install build-essential gcc make cmake git libopencv-dev
 
 ```bash
 #递归克隆主仓库以及子仓库，即Paho mqtt c库，编译需要
-$ cd yolov8n_lite_arm_cpu/external/paho.mqtt.cpp
+$ cd yolov8n_lite_arm_cpu/externals/paho.mqtt.cpp
 $ sudo apt-get insatll libssl-dev
+$ mv src/externals/ .
 
 $ cmake -Bbuild -H. \
 -DPAHO_WITH_MQTT_C=ON \
@@ -54,7 +55,7 @@ $ sudo ldconfig
 ### 安装Jsoncpp库
 
 ```bash
-$ cd yolov8n_lite_arm_cpu/external/jsoncpp
+$ cd yolov8n_lite_arm_cpu/externals/jsoncpp
 $ mkdir build && cd build
 $ cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DARCHIVE_INSTALL_DIR=. -G "Unix Makefiles" ..
 $ make
