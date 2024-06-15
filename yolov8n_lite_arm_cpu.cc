@@ -703,16 +703,16 @@ int main(int argc, char **argv) {
             cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
             process(input_image, output_image, predictor);
             //save_image("Camfram", output_image);
-            try
-            {
-                /* code */
-                cv::imshow("Output", output_image); // 显示处理后的图像
+            // try
+            // {
+            //     /* code */
+            //     // cv::imshow("Output", output_image); // 显示处理后的图像
 
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << e.what() << '\n';
-            }
+            // }
+            // catch(const std::exception& e)
+            // {
+            //     std::cerr << e.what() << '\n';
+            // }
             
             if (FALL_FLAGE && LAST_FLAGE) {
                 fall_detecte_count ++;
