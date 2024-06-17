@@ -696,13 +696,13 @@ int main(int argc, char **argv) {
             std::cout << "\n[ERROR]Could not open camera\n" << std::endl;
             return -1;
         }
-        cv::namedWindow("Output", cv::WINDOW_AUTOSIZE);
+        // cv::namedWindow("Output", cv::WINDOW_AUTOSIZE);
         while(1) {
             cv::Mat input_image;
             cap >> input_image;
             cv::Mat output_image = cv::Mat::zeros(input_image.size(), input_image.type());
             process(input_image, output_image, predictor);
-            //save_image("Camfram", output_image);
+            save_image("Camfram", output_image);
             // try
             // {
             //     /* code */
@@ -730,7 +730,7 @@ int main(int argc, char **argv) {
                 break;
             }
         }
-        cv::destroyAllWindows();
+        // cv::destroyAllWindows();s
     }
 
     return 0;

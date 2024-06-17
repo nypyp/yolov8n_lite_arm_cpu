@@ -58,7 +58,7 @@ target_link_libraries(${TARGET} -lpaddle_light_api_shared)
 target_link_libraries(${TARGET} -ldl)
 target_link_libraries(${TARGET} ${OpenCV_LIBRARIES})
 target_link_libraries(${TARGET} paho-mqttpp3 paho-mqtt3as)
-target_link_libraries(${TARGET} jsoncpp_lib)
+target_link_libraries(${TARGET} ${JSONCPP_INCLUDE_DIRS})
 
 ###############################################################
 # How to use one of static libaray:                           #
